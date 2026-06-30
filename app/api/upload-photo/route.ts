@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
 
     if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 })
 
-    // Convert foto ke base64 data URI (format yang dibaca modul Google Drive di Make)
+    // Convert foto ke base64 MURNI (tanpa prefix data:image/...) — format yang dibaca modul Google Drive di Make
     const buffer = Buffer.from(await file.arrayBuffer())
-    const base64Data = `data:image/jpeg;base64,${buffer.toString('base64')}`
+    const base64Data = buffer.toString('base64')
 
     let driveUrl: string | null = null
     try {
