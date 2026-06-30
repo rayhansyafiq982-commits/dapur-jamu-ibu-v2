@@ -3,7 +3,6 @@ import { createServiceClient } from '@/lib/supabase'
 
 // Foto check-in diteruskan ke Make.com webhook untuk diupload ke Google Drive.
 // Webhook: https://hook.eu1.make.com/yikrsiksdg3dhrw0t81tfbb6hplok4cq
-// (Scenario di Make perlu dikonfigurasi: Webhook -> Google Drive "Upload a file")
 const MAKE_DRIVE_WEBHOOK_URL = 'https://hook.eu1.make.com/yikrsiksdg3dhrw0t81tfbb6hplok4cq'
 
 export async function POST(request: NextRequest) {
@@ -16,16 +15,22 @@ export async function POST(request: NextRequest) {
 
     if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 })
 
-    // Forward foto ke Make.com sebagai multipart/form-data
-    const forwardData = new FormData()
-    forwardData.append('photo', file, `${tanggal}_${userName}_checkin.jpg`)
-    forwardData.append('userName', userName)
-    forwardData.append('tanggal', tanggal)
-    forwardData.append('attendanceId', attendanceId)
+    // Convert foto ke base64 data URI (format yang dibaca modul Google Drive di Make)
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const base64Data = `data:image/jpeg;base64,${buffer.toString('base64')}`
 
     let driveUrl: string | null = null
     try {
-      const makeResponse = await fetch(MAKE_DRIVE_WEBHOOK_URL, { method: 'POST', body: forwardData })
+      const makeResponse = await fetch(MAKE_DRIVE_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          photo: base64Data,
+          userName,
+          tanggal,
+          attendanceId,
+        }),
+      })
       if (makeResponse.ok) {
         const result = await makeResponse.json().catch(() => null)
         driveUrl = result?.fileUrl || null
