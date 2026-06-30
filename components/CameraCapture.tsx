@@ -27,9 +27,14 @@ export default function CameraCapture({ onCapture, onCancel }: Props) {
       streamRef.current = stream
       if (videoRef.current) {
         videoRef.current.srcObject = stream
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play()
-          setIsReady(true)
+        videoRef.current.onloadedmetadata = async () => {
+          try {
+            await videoRef.current?.play()
+            // Tunggu 1 frame tambahan supaya videoWidth/videoHeight benar-benar terisi
+            requestAnimationFrame(() => setIsReady(true))
+          } catch {
+            setIsReady(true)
+          }
         }
       }
     } catch (err: any) {
@@ -54,18 +59,25 @@ export default function CameraCapture({ onCapture, onCancel }: Props) {
     const video = videoRef.current
     const canvas = canvasRef.current
     if (!video || !canvas || !isReady) return
+    if (!video.videoWidth || !video.videoHeight) {
+      setError('Kamera belum siap sepenuhnya. Tunggu sebentar dan coba lagi.')
+      return
+    }
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     if (facingMode === 'user') { ctx.translate(canvas.width, 0); ctx.scale(-1, 1) }
-    ctx.drawImage(video, 0, 0)
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
     canvas.toBlob((blob) => {
-      if (!blob) return
+      if (!blob || blob.size < 1000) {
+        setError('Foto gagal diambil dengan benar. Coba lagi.')
+        return
+      }
       const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
       streamRef.current?.getTracks().forEach(t => t.stop())
       onCapture(blob, dataUrl)
-    }, 'image/jpeg', 0.85)
+    }, 'image/jpeg', 0.9)
   }, [isReady, facingMode, onCapture])
 
   if (error) return (
