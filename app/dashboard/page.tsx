@@ -133,8 +133,8 @@ function PoinScreen({ user }: { user: Profile }) {
     const header = 'Tanggal,Jam Masuk,Jam Pulang,Poin\n'
     const rows = history.map(att => {
       const tgl = new Date(att.tanggal).toLocaleDateString('id-ID')
-      const jm = att.jam_masuk ? new Date(att.jam_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) : '-'
-      const jp = att.jam_pulang ? new Date(att.jam_pulang).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) : '-'
+      const jm = att.jam_masuk ? new Date(att.jam_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' }) : '-'
+      const jp = att.jam_pulang ? new Date(att.jam_pulang).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' }) : '-'
       return `${tgl},${jm},${jp},${att.poin}`
     }).join('\n')
     const csv = header + rows
@@ -197,7 +197,7 @@ function PoinScreen({ user }: { user: Profile }) {
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 13 }}>{new Date(att.tanggal).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
                 <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
-                  Masuk {att.jam_masuk ? new Date(att.jam_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) : '–'} · Pulang {att.jam_pulang ? new Date(att.jam_pulang).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) : '–'}
+                  Masuk {att.jam_masuk ? new Date(att.jam_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' }) : '–'} · Pulang {att.jam_pulang ? new Date(att.jam_pulang).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' }) : '–'}
                 </div>
               </div>
               <div style={{ padding: '4px 12px', borderRadius: 20, fontWeight: 800, fontSize: 14, background: att.poin >= 30 ? '#E5F5EA' : att.poin > 0 ? C.surfaceAlt : '#F5F5F5', color: att.poin >= 30 ? C.primary : att.poin > 0 ? C.accent : '#999' }}>
