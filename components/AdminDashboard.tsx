@@ -62,7 +62,7 @@ export default function AdminDashboard({ user }: { user: any }) {
       const cells = uniqueDates.map(d => {
         const att = rekap.find(r => r.user_id === k.id && r.tanggal === d)
         if (!att) return '-'
-        const jm = att.jam_masuk ? new Date(att.jam_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) : '-'
+        const jm = att.jam_masuk ? new Date(att.jam_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' }) : '-'
         return `${jm} (+${att.poin})`
       })
       return [k.full_name, ...cells].join(',')
@@ -176,7 +176,7 @@ export default function AdminDashboard({ user }: { user: any }) {
                           <td key={d} style={{ padding: '8px', textAlign: 'center', borderLeft: `1px solid ${G.border}` }}>
                             {att ? (
                               <div>
-                                <div style={{ fontSize: 10, color: G.textMuted }}>{att.jam_masuk ? new Date(att.jam_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) : '–'}</div>
+                                <div style={{ fontSize: 10, color: G.textMuted }}>{att.jam_masuk ? new Date(att.jam_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' }) : '–'}</div>
                                 <div style={{ fontWeight: 800, color: att.poin > 0 ? G.primary : '#CCC', fontSize: 13 }}>+{att.poin}</div>
                                 <div style={{ fontSize: 10, color: att.status === 'hadir' ? G.primary : '#2563EB' }}>{att.status}</div>
                               </div>
