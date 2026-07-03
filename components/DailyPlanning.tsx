@@ -88,13 +88,35 @@ export default function DailyPlanning({ user, attendance }: Props) {
     const current = unfinished[picaIdx]
     const { data: planningRow } = await supabase.from('daily_planning').select('id').eq('attendance_id', attendance.id).eq('task_id', current.id).single()
     if (planningRow) {
+      const today = new Date().toISOString().split('T')[0]
+      const tanggalWITA = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Makassar' })
+
       await supabase.from('pica').insert({
-        planning_id: planningRow.id, user_id: user.id, tanggal: new Date().toISOString().split('T')[0],
+        planning_id: planningRow.id, user_id: user.id, tanggal: today,
         identifikasi_masalah: picaData[`${current.id}_masalah`] || '',
         akar_penyebab: picaData[`${current.id}_akar`] || '',
         rencana_perbaikan: picaData[`${current.id}_perbaikan`] || '',
         target_selesai: picaData[`${current.id}_target`] || null,
       })
+
+      // Sync ke Google Sheets PICA via Make webhook
+      try {
+        await fetch('https://hook.eu1.make.com/qk59vpm9fzc57olrzb4j19kswkr8oo58', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tanggal: tanggalWITA,
+            karyawan: user.full_name,
+            tugas: current.nama_tugas,
+            identifikasi_masalah: picaData[`${current.id}_masalah`] || '',
+            akar_penyebab: picaData[`${current.id}_akar`] || '',
+            rencana_perbaikan: picaData[`${current.id}_perbaikan`] || '',
+            target_selesai: picaData[`${current.id}_target`] || '-',
+          }),
+        })
+      } catch (e) {
+        console.error('Make PICA webhook error:', e)
+      }
     }
     if (picaIdx < unfinished.length - 1) setPicaIdx(i => i + 1)
     else setPicaDone(true)
