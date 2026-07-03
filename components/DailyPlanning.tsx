@@ -15,7 +15,7 @@ interface TaskItem extends DailyTask {
   planning_id?: string
 }
 
-export default function DailyPlanning({ user, attendance }: Props) {
+export default function DailyPlanning({ user, attendance: attendanceProp }: Props) {
   const [tab, setTab] = useState<'planning' | 'aktual'>('planning')
   const [items, setItems] = useState<TaskItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -25,14 +25,23 @@ export default function DailyPlanning({ user, attendance }: Props) {
   const [picaIdx, setPicaIdx] = useState(0)
   const [picaData, setPicaData] = useState<Record<string, string>>({})
   const [picaDone, setPicaDone] = useState(false)
+  const [attendance, setAttendance] = useState<any>(attendanceProp)
 
   useEffect(() => {
     const load = async () => {
+      // Selalu fetch attendance terbaru langsung — jangan andalkan props yang mungkin stale
+      const today = new Date().toISOString().split('T')[0]
+      let currentAttendance = attendanceProp
+      if (!currentAttendance) {
+        const { data: att } = await supabase.from('attendance').select('*').eq('user_id', user.id).eq('tanggal', today).single()
+        if (att) { currentAttendance = att; setAttendance(att) }
+      }
+
       const { data: tasks } = await supabase.from('daily_tasks').select('*').eq('divisi', user.divisi).eq('is_active', true).order('urutan')
       if (!tasks) return
 
-      if (attendance) {
-        const { data: existing } = await supabase.from('daily_planning').select('*').eq('attendance_id', attendance.id)
+      if (currentAttendance) {
+        const { data: existing } = await supabase.from('daily_planning').select('*').eq('attendance_id', currentAttendance.id)
         if (existing && existing.length > 0) {
           setItems(tasks.map(t => {
             const p = existing.find((e: DPType) => e.task_id === t.id)
@@ -42,11 +51,14 @@ export default function DailyPlanning({ user, attendance }: Props) {
         } else {
           setItems(tasks.map(t => ({ ...t, is_planned: true, is_completed: false, catatan_planning: '', catatan_aktual: '', showNoteP: false, showNoteA: false })))
         }
+      } else {
+        // Belum check-in hari ini
+        setItems(tasks.map(t => ({ ...t, is_planned: true, is_completed: false, catatan_planning: '', catatan_aktual: '', showNoteP: false, showNoteA: false })))
       }
       setLoading(false)
     }
     load()
-  }, [user.divisi, attendance])
+  }, [user.divisi, user.id, attendanceProp])
 
   const toggle = (id: string, field: 'is_planned' | 'is_completed') =>
     setItems(p => p.map(i => i.id === id ? { ...i, [field]: !i[field] } : i))
