@@ -33,7 +33,7 @@ export default function DailyPlanning({ user, attendance: attendanceProp }: Prop
       const today = new Date().toISOString().split('T')[0]
       let currentAttendance = attendanceProp
       if (!currentAttendance) {
-        const { data: att } = await supabase.from('attendance').select('*').eq('user_id', user.id).eq('tanggal', today).single()
+        const { data: att } = await supabase.from('attendance').select('*').eq('user_id', user.id).eq('tanggal', today).maybeSingle()
         if (att) { currentAttendance = att; setAttendance(att) }
       }
 
@@ -68,15 +68,28 @@ export default function DailyPlanning({ user, attendance: attendanceProp }: Prop
     setItems(p => p.map(i => i.id === id ? { ...i, [field]: !i[field] } : i))
 
   const savePlanning = async () => {
-    if (!attendance) return
+    if (!attendance) {
+      // Coba fetch ulang attendance
+      const today = new Date().toISOString().split('T')[0]
+      const { data: att } = await supabase.from('attendance').select('*').eq('user_id', user.id).eq('tanggal', today).maybeSingle()
+      if (!att) {
+        setSavedMsg('⚠️ Kamu belum check-in hari ini. Absen dulu ya!')
+        setTimeout(() => setSavedMsg(''), 3000)
+        return
+      }
+      setAttendance(att)
+    }
     setSaving(true)
     const today = new Date().toISOString().split('T')[0]
+    const currentAttendance = attendance || (await supabase.from('attendance').select('*').eq('user_id', user.id).eq('tanggal', today).maybeSingle()).data
+    if (!currentAttendance) return
     const upserts = items.filter(i => i.is_planned).map(i => ({
-      attendance_id: attendance.id, user_id: user.id, tanggal: today,
+      attendance_id: currentAttendance.id, user_id: user.id, tanggal: today,
       task_id: i.id, is_planned: true, is_completed: false,
       catatan_planning: i.catatan_planning,
     }))
-    await supabase.from('daily_planning').upsert(upserts, { onConflict: 'attendance_id,task_id' })
+    const { error } = await supabase.from('daily_planning').upsert(upserts, { onConflict: 'attendance_id,task_id' })
+    if (error) console.error('Planning save error:', error)
     setSaving(false)
     setSavedMsg('Planning tersimpan!')
     setTimeout(() => { setSavedMsg(''); setTab('aktual') }, 1200)
@@ -98,7 +111,7 @@ export default function DailyPlanning({ user, attendance: attendanceProp }: Prop
   const savePica = async () => {
     const unfinished = items.filter(i => i.is_planned && !i.is_completed)
     const current = unfinished[picaIdx]
-    const { data: planningRow } = await supabase.from('daily_planning').select('id').eq('attendance_id', attendance.id).eq('task_id', current.id).single()
+    const { data: planningRow } = await supabase.from('daily_planning').select('id').eq('attendance_id', attendance.id).eq('task_id', current.id).maybeSingle()
     if (planningRow) {
       const today = new Date().toISOString().split('T')[0]
       const tanggalWITA = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Makassar' })
