@@ -5,7 +5,7 @@ const MAKE_WEBHOOK_URL = 'https://hook.eu1.make.com/tos1azeoouffsr48kb3r99bh1bpa
 
 function fmtTime(ts: string | null): string {
   if (!ts) return '–'
-  return new Date(ts).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })
+  return new Date(ts).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' })
 }
 
 export async function POST(request: NextRequest) {
