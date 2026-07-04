@@ -38,11 +38,16 @@ export default function CheckIn({ user, attendance, onAttendanceUpdate }: Props)
       const { data: timeData } = await supabase.rpc('get_server_time')
       const serverTime = timeData ? new Date(timeData) : new Date()
       const poin = calculateAttendancePoints(serverTime)
-      const tanggal = serverTime.toISOString().split('T')[0]
+
+      // ✅ PERBAIKAN: Gunakan WITA untuk tanggal, bukan UTC
+      const tanggal = serverTime.toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' })
 
       const { data: att, error: attErr } = await supabase
         .from('attendance')
-        .upsert({ user_id: user.id, tanggal, jam_masuk: serverTime.toISOString(), poin, status: 'hadir' }, { onConflict: 'user_id,tanggal' })
+        .upsert(
+          { user_id: user.id, tanggal, jam_masuk: serverTime.toISOString(), poin, status: 'hadir' },
+          { onConflict: 'user_id,tanggal' }
+        )
         .select().single()
       if (attErr) throw attErr
 
@@ -70,10 +75,16 @@ export default function CheckIn({ user, attendance, onAttendanceUpdate }: Props)
     if (!attendance) return
     const { data: timeData } = await supabase.rpc('get_server_time')
     const serverTime = timeData ? new Date(timeData) : new Date()
-    const { data: updated } = await supabase.from('attendance').update({ jam_pulang: serverTime.toISOString() }).eq('id', attendance.id).select().single()
+    const { data: updated } = await supabase
+      .from('attendance')
+      .update({ jam_pulang: serverTime.toISOString() })
+      .eq('id', attendance.id)
+      .select().single()
     if (updated) {
       onAttendanceUpdate(updated)
-      await fetch('/api/sync-sheets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tanggal: attendance.tanggal }) })
+      // ✅ PERBAIKAN: Gunakan WITA untuk tanggal sync
+      const tanggal = serverTime.toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' })
+      await fetch('/api/sync-sheets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tanggal }) })
     }
   }
 
@@ -82,10 +93,16 @@ export default function CheckIn({ user, attendance, onAttendanceUpdate }: Props)
     try {
       const { data: timeData } = await supabase.rpc('get_server_time')
       const serverTime = timeData ? new Date(timeData) : new Date()
-      const tanggal = serverTime.toISOString().split('T')[0]
+
+      // ✅ PERBAIKAN: Gunakan WITA untuk tanggal, bukan UTC
+      const tanggal = serverTime.toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' })
+
       const { data: att } = await supabase
         .from('attendance')
-        .upsert({ user_id: user.id, tanggal, status: 'sakit', keterangan_sakit: sakitKet, poin: 0 }, { onConflict: 'user_id,tanggal' })
+        .upsert(
+          { user_id: user.id, tanggal, status: 'sakit', keterangan_sakit: sakitKet, poin: 0 },
+          { onConflict: 'user_id,tanggal' }
+        )
         .select().single()
       if (att) onAttendanceUpdate(att)
       setStep('done')
@@ -103,7 +120,9 @@ export default function CheckIn({ user, attendance, onAttendanceUpdate }: Props)
       <ClockCard time={time} today={today} />
       <div style={{ ...S.card, background: '#E8F8F0', border: '2px solid #A8E6C3' }}>
         <div style={{ fontWeight: 800, color: '#27AE60', fontSize: 15, marginBottom: 4 }}>✅ Absensi Hari Ini Lengkap</div>
-        <div style={{ color: '#5C7868', fontSize: 13 }}>Masuk: {new Date(attendance.jam_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' })} · Pulang: {new Date(attendance.jam_pulang).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' })}</div>
+        <div style={{ color: '#5C7868', fontSize: 13 }}>
+          Masuk: {new Date(attendance.jam_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' })} · Pulang: {new Date(attendance.jam_pulang).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' })}
+        </div>
         <div style={{ marginTop: 10, background: '#E5F5EA', borderRadius: 10, padding: '8px 14px', display: 'inline-block' }}>
           <span style={{ color: '#1B5E3A', fontWeight: 900, fontSize: 20 }}>+{attendance.poin} poin</span>
         </div>
@@ -115,16 +134,24 @@ export default function CheckIn({ user, attendance, onAttendanceUpdate }: Props)
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <ClockCard time={time} today={today} />
 
-      {error && <div style={{ background: '#FDF0EE', border: '2px solid #C0392B', borderRadius: 10, padding: '10px 14px', color: '#C0392B', fontSize: 13, fontWeight: 600 }}>⚠️ {error}</div>}
+      {error && (
+        <div style={{ background: '#FDF0EE', border: '2px solid #C0392B', borderRadius: 10, padding: '10px 14px', color: '#C0392B', fontSize: 13, fontWeight: 600 }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       {/* Sudah check in, belum check out */}
       {attendance?.jam_masuk && !attendance?.jam_pulang && (
         <>
           <div style={{ ...S.card, background: '#E8F8F0', border: '2px solid #A8E6C3' }}>
-            <div style={{ fontWeight: 800, color: '#27AE60' }}>✅ Sudah Check In — Pukul {new Date(attendance.jam_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' })}</div>
+            <div style={{ fontWeight: 800, color: '#27AE60' }}>
+              ✅ Sudah Check In — Pukul {new Date(attendance.jam_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' })}
+            </div>
             <div style={{ color: '#5C7868', fontSize: 13, marginTop: 4 }}>+{attendance.poin} poin earned</div>
           </div>
-          <button onClick={handleCheckOut} style={{ width: '100%', padding: 14, borderRadius: 12, border: 'none', background: '#E5F0E8', color: '#1B5E3A', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>🏠 Check Out</button>
+          <button onClick={handleCheckOut} style={{ width: '100%', padding: 14, borderRadius: 12, border: 'none', background: '#E5F0E8', color: '#1B5E3A', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+            🏠 Check Out
+          </button>
         </>
       )}
 
@@ -155,7 +182,9 @@ export default function CheckIn({ user, attendance, onAttendanceUpdate }: Props)
                 <span style={{ background: '#E5F5EA', border: '2px solid #4CAF6D', borderRadius: 10, padding: '6px 14px', fontWeight: 700, color: '#4CAF6D', fontSize: 13 }}>🏢 Hadir</span>
                 <button onClick={() => setStatus(null)} style={{ background: '#E5F0E8', border: '1px solid #D5E5DA', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: '#5C7868', cursor: 'pointer', fontWeight: 600 }}>Ganti</button>
               </div>
-              <button onClick={() => setStep('camera')} style={{ width: '100%', padding: 14, borderRadius: 12, border: 'none', background: '#1B5E3A', color: 'white', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>📸 Lanjut — Ambil Foto Selfie</button>
+              <button onClick={() => setStep('camera')} style={{ width: '100%', padding: 14, borderRadius: 12, border: 'none', background: '#1B5E3A', color: 'white', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+                📸 Lanjut — Ambil Foto Selfie
+              </button>
             </div>
           )}
 
@@ -191,13 +220,20 @@ export default function CheckIn({ user, attendance, onAttendanceUpdate }: Props)
               </div>
               <div style={{ marginBottom: 14 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#1A2E22', marginBottom: 6 }}>Keterangan Sakit *</label>
-                <textarea value={sakitKet} onChange={e => setSakitKet(e.target.value)} rows={3} placeholder="Contoh: Demam dan flu sejak tadi malam..."
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '2px solid #D5E5DA', background: '#F4FAF6', fontSize: 13, outline: 'none', resize: 'none', boxSizing: 'border-box' }} />
+                <textarea
+                  value={sakitKet}
+                  onChange={e => setSakitKet(e.target.value)}
+                  rows={3}
+                  placeholder="Contoh: Demam dan flu sejak tadi malam..."
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '2px solid #D5E5DA', background: '#F4FAF6', fontSize: 13, outline: 'none', resize: 'none', boxSizing: 'border-box' }}
+                />
               </div>
               <div style={{ padding: '10px 14px', background: '#EEF4FF', borderRadius: 10, marginBottom: 16, fontSize: 12, color: '#2563EB' }}>
                 ℹ️ Izin sakit tidak mendapat poin, namun tidak dihitung alpha.
               </div>
-              <button onClick={handleConfirmSakit} disabled={!sakitKet.trim() || step === 'submitting'}
+              <button
+                onClick={handleConfirmSakit}
+                disabled={!sakitKet.trim() || step === 'submitting'}
                 style={{ width: '100%', padding: 14, borderRadius: 12, border: 'none', background: sakitKet.trim() ? '#2563EB' : '#DDD', color: 'white', fontWeight: 800, cursor: sakitKet.trim() ? 'pointer' : 'not-allowed', fontSize: 15 }}>
                 {step === 'submitting' ? '⏳ Mengirim...' : '🤒 Kirim Laporan Sakit'}
               </button>
@@ -213,7 +249,7 @@ function ClockCard({ time, today }: { time: string; today: string }) {
   return (
     <div style={{ background: 'linear-gradient(135deg, #1B5E3A, #0D3322)', borderRadius: 16, padding: 20, textAlign: 'center' }}>
       <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 4 }}>Waktu Server</div>
-      <div style={{ color: '#1B5E3A', fontSize: 38, fontWeight: 800, fontFamily: 'monospace', letterSpacing: 2 }}>{time}</div>
+      <div style={{ color: '#fff', fontSize: 38, fontWeight: 800, fontFamily: 'monospace', letterSpacing: 2 }}>{time}</div>
       <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, marginTop: 4 }}>{today}</div>
     </div>
   )
