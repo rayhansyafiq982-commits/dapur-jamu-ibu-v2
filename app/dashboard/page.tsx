@@ -9,7 +9,7 @@ import AdminDashboard from '@/components/AdminDashboard'
 import ProfileScreen from '@/components/ProfileScreen'
 import JobdeskScreen from '@/components/JobdeskScreen'
 
-const C = {
+const PC = {
   primary: '#1B5E3A', primaryDark: '#0D3322', accent: '#4CAF6D',
   surface: '#F4FAF6', surfaceAlt: '#E5F0E8', text: '#1A2E22',
   textMuted: '#5C7868', border: '#D5E5DA', white: '#FFFFFF',
@@ -59,10 +59,10 @@ export default function Dashboard() {
   }
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.surface }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: PC.surface }}>
       <div style={{ textAlign: 'center' }}>
         <img src="/logo.jpg" alt="logo" style={{ width: 56, height: 56, borderRadius: 14, marginBottom: 12 }} />
-        <div style={{ color: C.textMuted, fontSize: 14 }}>Memuat...</div>
+        <div style={{ color: PC.textMuted, fontSize: 14 }}>Memuat...</div>
       </div>
     </div>
   )
@@ -79,18 +79,18 @@ export default function Dashboard() {
   ]
 
   return (
-    <div style={{ minHeight: '100vh', background: C.surface, display: 'flex', flexDirection: 'column', maxWidth: 480, margin: '0 auto' }}>
-      <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
+    <div style={{ minHeight: '100vh', background: PC.surface, display: 'flex', flexDirection: 'column', maxWidth: 480, margin: '0 auto' }}>
+      <div style={{ background: PC.white, borderBottom: `1px solid ${PC.border}`, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <img src="/logo.jpg" alt="logo" style={{ width: 32, height: 32, borderRadius: 8 }} />
           <div>
-            <div style={{ fontWeight: 800, fontSize: 14, color: C.primary, lineHeight: 1 }}>Dapur Jamu Ibu</div>
-            <div style={{ fontSize: 10, color: C.textMuted }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: PC.primary, lineHeight: 1 }}>Dapur Jamu Ibu</div>
+            <div style={{ fontSize: 10, color: PC.textMuted }}>
               {user.full_name} {isAdmin ? '— Owner' : `— ${user.divisi}`}
             </div>
           </div>
         </div>
-        <button onClick={handleLogout} style={{ background: C.surfaceAlt, border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: C.textMuted, cursor: 'pointer', fontWeight: 600 }}>
+        <button onClick={handleLogout} style={{ background: PC.surfaceAlt, border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: PC.textMuted, cursor: 'pointer', fontWeight: 600 }}>
           Keluar
         </button>
       </div>
@@ -105,13 +105,13 @@ export default function Dashboard() {
       </div>
 
       {!isAdmin && (
-        <div style={{ background: C.white, borderTop: `1px solid ${C.border}`, display: 'flex', padding: '8px 0 16px' }}>
+        <div style={{ background: PC.white, borderTop: `1px solid ${PC.border}`, display: 'flex', padding: '8px 0 16px' }}>
           {karyawanTabs.map(t => (
             <button key={t.key} onClick={() => setActiveTab(t.key)}
               style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0' }}>
               <span style={{ fontSize: 20, filter: activeTab === t.key ? 'none' : 'grayscale(1) opacity(0.45)' }}>{t.icon}</span>
-              <span style={{ fontSize: 10, fontWeight: activeTab === t.key ? 700 : 500, color: activeTab === t.key ? C.primary : C.textMuted }}>{t.label}</span>
-              {activeTab === t.key && <div style={{ width: 4, height: 4, borderRadius: '50%', background: C.primary }} />}
+              <span style={{ fontSize: 10, fontWeight: activeTab === t.key ? 700 : 500, color: activeTab === t.key ? PC.primary : PC.textMuted }}>{t.label}</span>
+              {activeTab === t.key && <div style={{ width: 4, height: 4, borderRadius: '50%', background: PC.primary }} />}
             </button>
           ))}
         </div>
@@ -169,7 +169,7 @@ function PoinScreen({ user }: { user: Profile }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`, borderRadius: 16, padding: '28px 20px', textAlign: 'center' }}>
+      <div style={{ background: `linear-gradient(135deg, ${PC.primary}, ${PC.primaryDark})`, borderRadius: 16, padding: '28px 20px', textAlign: 'center' }}>
         <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 4 }}>Total Poin Bulan Ini</div>
         <div style={{ color: '#fff', fontSize: 54, fontWeight: 900, lineHeight: 1 }}>{total}</div>
         <div style={{ marginTop: 14, display: 'inline-block', background: 'rgba(255,255,255,0.15)', padding: '6px 16px', borderRadius: 20 }}>
@@ -180,15 +180,15 @@ function PoinScreen({ user }: { user: Profile }) {
       </div>
 
       {monthlyData.length > 0 && (
-        <div style={{ background: C.white, borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(27,94,58,0.08)', border: `1px solid ${C.border}` }}>
-          <div style={{ color: C.textMuted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>📊 Grafik Poin (14 Hari Terakhir)</div>
+        <div style={{ background: PC.white, borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(27,94,58,0.08)', border: `1px solid ${PC.border}` }}>
+          <div style={{ color: PC.textMuted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>📊 Grafik Poin (14 Hari Terakhir)</div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 120 }}>
             {monthlyData.map((d, i) => (
               <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                 <div style={{
                   width: '100%', maxWidth: 18,
                   height: `${Math.max((d.poin / maxPoin) * 90, 3)}px`,
-                  background: d.poin >= 30 ? C.primary : d.poin > 0 ? C.accent : '#E0E0E0',
+                  background: d.poin >= 30 ? PC.primary : d.poin > 0 ? PC.accent : '#E0E0E0',
                   borderRadius: '4px 4px 0 0',
                   transition: 'height 0.3s',
                 }} title={`${d.label}: ${d.poin} poin`} />
@@ -197,7 +197,7 @@ function PoinScreen({ user }: { user: Profile }) {
           </div>
           <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
             {monthlyData.map((d, i) => (
-              <div key={i} style={{ flex: 1, fontSize: 8, color: C.textMuted, textAlign: 'center', writingMode: 'vertical-rl', textOrientation: 'mixed', height: 30 }}>
+              <div key={i} style={{ flex: 1, fontSize: 8, color: PC.textMuted, textAlign: 'center', writingMode: 'vertical-rl', textOrientation: 'mixed', height: 30 }}>
                 {i % 2 === 0 ? d.label : ''}
               </div>
             ))}
@@ -205,27 +205,27 @@ function PoinScreen({ user }: { user: Profile }) {
         </div>
       )}
 
-      <div style={{ background: C.white, borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(27,94,58,0.08)', border: `1px solid ${C.border}` }}>
+      <div style={{ background: PC.white, borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(27,94,58,0.08)', border: `1px solid ${PC.border}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div style={{ color: C.textMuted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5 }}>Riwayat Kehadiran</div>
-          <button onClick={exportCSV} style={{ background: C.surfaceAlt, border: `1px solid ${C.border}`, borderRadius: 8, padding: '5px 10px', fontSize: 11, color: C.primary, fontWeight: 700, cursor: 'pointer' }}>
+          <div style={{ color: PC.textMuted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5 }}>Riwayat Kehadiran</div>
+          <button onClick={exportCSV} style={{ background: PC.surfaceAlt, border: `1px solid ${PC.border}`, borderRadius: 8, padding: '5px 10px', fontSize: 11, color: PC.primary, fontWeight: 700, cursor: 'pointer' }}>
             📥 Export CSV
           </button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {history.length === 0
-            ? <div style={{ textAlign: 'center', color: C.textMuted, padding: '16px 0' }}>Belum ada riwayat kehadiran</div>
+            ? <div style={{ textAlign: 'center', color: PC.textMuted, padding: '16px 0' }}>Belum ada riwayat kehadiran</div>
             : history.map((att, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', borderRadius: 12, background: C.surface, border: `1px solid ${C.border}` }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', borderRadius: 12, background: PC.surface, border: `1px solid ${PC.border}` }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 13 }}>
                     {new Date(att.tanggal).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })}
                   </div>
-                  <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: PC.textMuted, marginTop: 2 }}>
                     Masuk {att.jam_masuk ? new Date(att.jam_masuk).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' }) : '–'} · Pulang {att.jam_pulang ? new Date(att.jam_pulang).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Makassar' }) : '–'}
                   </div>
                 </div>
-                <div style={{ padding: '4px 12px', borderRadius: 20, fontWeight: 800, fontSize: 14, background: att.poin >= 30 ? '#E5F5EA' : att.poin > 0 ? C.surfaceAlt : '#F5F5F5', color: att.poin >= 30 ? C.primary : att.poin > 0 ? C.accent : '#999' }}>
+                <div style={{ padding: '4px 12px', borderRadius: 20, fontWeight: 800, fontSize: 14, background: att.poin >= 30 ? '#E5F5EA' : att.poin > 0 ? PC.surfaceAlt : '#F5F5F5', color: att.poin >= 30 ? PC.primary : att.poin > 0 ? PC.accent : '#999' }}>
                   +{att.poin}
                 </div>
               </div>
