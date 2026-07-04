@@ -36,7 +36,7 @@ export default function Dashboard() {
       setUser(profile)
 
       if (profile.role !== 'super_admin') {
-        // ✅ PERBAIKAN: Gunakan WITA untuk tanggal hari ini, bukan UTC
+        // PERBAIKAN: Gunakan WITA untuk tanggal hari ini, bukan UTC
         const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' })
 
         const { data: att } = await supabase
@@ -80,7 +80,6 @@ export default function Dashboard() {
 
   return (
     <div style={{ minHeight: '100vh', background: C.surface, display: 'flex', flexDirection: 'column', maxWidth: 480, margin: '0 auto' }}>
-      {/* Header */}
       <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <img src="/logo.jpg" alt="logo" style={{ width: 32, height: 32, borderRadius: 8 }} />
@@ -91,14 +90,11 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          style={{ background: C.surfaceAlt, border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: C.textMuted, cursor: 'pointer', fontWeight: 600 }}>
+        <button onClick={handleLogout} style={{ background: C.surfaceAlt, border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, color: C.textMuted, cursor: 'pointer', fontWeight: 600 }}>
           Keluar
         </button>
       </div>
 
-      {/* Content */}
       <div style={{ flex: 1, padding: 16, overflowY: 'auto' }}>
         {isAdmin && <AdminDashboard user={user} />}
         {!isAdmin && activeTab === 'absensi' && <CheckIn user={user} attendance={attendance} onAttendanceUpdate={setAttendance} />}
@@ -108,13 +104,10 @@ export default function Dashboard() {
         {!isAdmin && activeTab === 'profil' && <ProfileScreen user={user} onUserUpdate={setUser} />}
       </div>
 
-      {/* Bottom Nav */}
       {!isAdmin && (
         <div style={{ background: C.white, borderTop: `1px solid ${C.border}`, display: 'flex', padding: '8px 0 16px' }}>
           {karyawanTabs.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setActiveTab(t.key)}
+            <button key={t.key} onClick={() => setActiveTab(t.key)}
               style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0' }}>
               <span style={{ fontSize: 20, filter: activeTab === t.key ? 'none' : 'grayscale(1) opacity(0.45)' }}>{t.icon}</span>
               <span style={{ fontSize: 10, fontWeight: activeTab === t.key ? 700 : 500, color: activeTab === t.key ? C.primary : C.textMuted }}>{t.label}</span>
@@ -176,7 +169,6 @@ function PoinScreen({ user }: { user: Profile }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Total Poin */}
       <div style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`, borderRadius: 16, padding: '28px 20px', textAlign: 'center' }}>
         <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 4 }}>Total Poin Bulan Ini</div>
         <div style={{ color: '#fff', fontSize: 54, fontWeight: 900, lineHeight: 1 }}>{total}</div>
@@ -187,7 +179,6 @@ function PoinScreen({ user }: { user: Profile }) {
         </div>
       </div>
 
-      {/* Grafik */}
       {monthlyData.length > 0 && (
         <div style={{ background: C.white, borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(27,94,58,0.08)', border: `1px solid ${C.border}` }}>
           <div style={{ color: C.textMuted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>📊 Grafik Poin (14 Hari Terakhir)</div>
@@ -214,7 +205,6 @@ function PoinScreen({ user }: { user: Profile }) {
         </div>
       )}
 
-      {/* Riwayat */}
       <div style={{ background: C.white, borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(27,94,58,0.08)', border: `1px solid ${C.border}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div style={{ color: C.textMuted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5 }}>Riwayat Kehadiran</div>
@@ -244,10 +234,4 @@ function PoinScreen({ user }: { user: Profile }) {
       </div>
     </div>
   )
-}
-
-const C = {
-  primary: '#1B5E3A', primaryDark: '#0D3322', accent: '#4CAF6D',
-  surface: '#F4FAF6', surfaceAlt: '#E5F0E8', text: '#1A2E22',
-  textMuted: '#5C7868', border: '#D5E5DA', white: '#FFFFFF',
 }
