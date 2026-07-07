@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase'
+
+const MAKE_DRIVE_WEBHOOK_URL = 'https://hook.eu1.make.com/yikrsiksdg3dhrw0t81tfbb6hplok4cq'
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,50 +12,25 @@ export async function POST(request: NextRequest) {
 
     if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 })
 
-    const supabase = createServiceClient()
-
-    // Nama file: CHECKIN_NamaUser_2026-07-07_timestamp.jpg
-    const safeName = userName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')
-    const fileName = `${tanggal}/${safeName}_${Date.now()}.jpg`
-
-    // Convert File ke Buffer
+    // Convert foto ke base64
     const buffer = Buffer.from(await file.arrayBuffer())
+    const base64Data = buffer.toString('base64')
 
-    // Upload ke Supabase Storage bucket "Foto-Absensi"
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('Foto-Absensi')
-      .upload(fileName, buffer, {
-        contentType: 'image/jpeg',
-        upsert: false,
-      })
+    // Kirim ke Make.com tanpa menunggu response (fire and forget)
+    // Make.com yang akan update database Supabase langsung
+    fetch(MAKE_DRIVE_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        photo: base64Data,
+        userName,
+        tanggal,
+        attendanceId,
+      }),
+    }).catch(err => console.error('Make webhook error:', err))
 
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError)
-      // Tetap lanjut meski upload gagal — absensi sudah tersimpan
-      await supabase.from('attendance').update({
-        catatan: 'Gagal upload foto: ' + uploadError.message,
-      }).eq('id', attendanceId)
-      return NextResponse.json({ success: true, fileUrl: null, error: uploadError.message })
-    }
-
-    // Ambil public URL foto
-    const { data: urlData } = supabase.storage
-      .from('Foto-Absensi')
-      .getPublicUrl(fileName)
-
-    const publicUrl = urlData?.publicUrl ?? null
-
-    // Update attendance dengan URL foto
-    await supabase.from('attendance').update({
-      foto_url: publicUrl,
-      catatan: 'Foto tersimpan di Supabase Storage',
-    }).eq('id', attendanceId)
-
-    return NextResponse.json({
-      success: true,
-      fileUrl: publicUrl,
-      path: uploadData.path,
-    })
+    // Langsung return sukses tanpa tunggu Make.com
+    return NextResponse.json({ success: true, message: 'Foto sedang diproses' })
 
   } catch (error: any) {
     console.error('Upload route error:', error)
