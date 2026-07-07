@@ -12,12 +12,10 @@ export async function POST(request: NextRequest) {
 
     if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 })
 
-    // Convert foto ke base64
     const buffer = Buffer.from(await file.arrayBuffer())
     const base64Data = buffer.toString('base64')
 
-    // Kirim ke Make.com tanpa menunggu response (fire and forget)
-    // Make.com yang akan update database Supabase langsung
+    // Kirim ke Make.com tanpa menunggu response
     fetch(MAKE_DRIVE_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -29,11 +27,9 @@ export async function POST(request: NextRequest) {
       }),
     }).catch(err => console.error('Make webhook error:', err))
 
-    // Langsung return sukses tanpa tunggu Make.com
     return NextResponse.json({ success: true, message: 'Foto sedang diproses' })
 
   } catch (error: any) {
-    console.error('Upload route error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
