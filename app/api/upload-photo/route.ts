@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 
-// Foto check-in diteruskan ke Make.com webhook untuk diupload ke Google Drive.
-// Webhook: https://hook.eu1.make.com/yikrsiksdg3dhrw0t81tfbb6hplok4cq
-const MAKE_DRIVE_WEBHOOK_URL = 'https://hook.eu1.make.com/yikrsiksdg3dhrw0t81tfbb6hplok4cq'
-
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -15,37 +11,51 @@ export async function POST(request: NextRequest) {
 
     if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 })
 
-    // Convert foto ke base64 MURNI (tanpa prefix data:image/...) — format yang dibaca modul Google Drive di Make
-    const buffer = Buffer.from(await file.arrayBuffer())
-    const base64Data = buffer.toString('base64')
+    const supabase = createServiceClient()
 
-    let driveUrl: string | null = null
-    try {
-      const makeResponse = await fetch(MAKE_DRIVE_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          photo: base64Data,
-          userName,
-          tanggal,
-          attendanceId,
-        }),
+    // Nama file: CHECKIN_NamaUser_2026-07-07_timestamp.jpg
+    const safeName = userName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')
+    const fileName = `${tanggal}/${safeName}_${Date.now()}.jpg`
+
+    // Convert File ke Buffer
+    const buffer = Buffer.from(await file.arrayBuffer())
+
+    // Upload ke Supabase Storage bucket "Foto-Absensi"
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('Foto-Absensi')
+      .upload(fileName, buffer, {
+        contentType: 'image/jpeg',
+        upsert: false,
       })
-      if (makeResponse.ok) {
-        const result = await makeResponse.json().catch(() => null)
-        driveUrl = result?.fileUrl || null
-      }
-    } catch (makeError) {
-      console.error('Make webhook unreachable:', makeError)
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError)
+      // Tetap lanjut meski upload gagal — absensi sudah tersimpan
+      await supabase.from('attendance').update({
+        catatan: 'Gagal upload foto: ' + uploadError.message,
+      }).eq('id', attendanceId)
+      return NextResponse.json({ success: true, fileUrl: null, error: uploadError.message })
     }
 
-    const supabase = createServiceClient()
+    // Ambil public URL foto
+    const { data: urlData } = supabase.storage
+      .from('Foto-Absensi')
+      .getPublicUrl(fileName)
+
+    const publicUrl = urlData?.publicUrl ?? null
+
+    // Update attendance dengan URL foto
     await supabase.from('attendance').update({
-      foto_url: driveUrl,
-      catatan: driveUrl ? 'Foto tersimpan di Drive' : 'Foto diterima, menunggu sync ke Drive',
+      foto_url: publicUrl,
+      catatan: 'Foto tersimpan di Supabase Storage',
     }).eq('id', attendanceId)
 
-    return NextResponse.json({ success: true, fileUrl: driveUrl })
+    return NextResponse.json({
+      success: true,
+      fileUrl: publicUrl,
+      path: uploadData.path,
+    })
+
   } catch (error: any) {
     console.error('Upload route error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
