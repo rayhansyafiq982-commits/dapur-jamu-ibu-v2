@@ -30,10 +30,10 @@ export default function CameraCapture({ onCapture, onCancel }: Props) {
         videoRef.current.onloadedmetadata = async () => {
           try {
             await videoRef.current?.play()
-            // Tunggu 1 frame tambahan supaya videoWidth/videoHeight benar-benar terisi
-            requestAnimationFrame(() => setIsReady(true))
+            // Tunggu 1.5 detik agar kamera benar-benar siap (fix foto hitam di HP Android)
+            setTimeout(() => setIsReady(true), 1500)
           } catch {
-            setIsReady(true)
+            setTimeout(() => setIsReady(true), 1500)
           }
         }
       }
