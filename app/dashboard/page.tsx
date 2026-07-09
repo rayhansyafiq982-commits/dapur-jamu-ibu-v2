@@ -8,6 +8,7 @@ import DailyPlanning from '@/components/DailyPlanning'
 import AdminDashboard from '@/components/AdminDashboard'
 import ProfileScreen from '@/components/ProfileScreen'
 import JobdeskScreen from '@/components/JobdeskScreen'
+import ManageUsers from '@/components/ManageUsers'
 
 const PC = {
   primary: '#1B5E3A', primaryDark: '#0D3322', accent: '#4CAF6D',
@@ -36,9 +37,7 @@ export default function Dashboard() {
       setUser(profile)
 
       if (profile.role !== 'super_admin') {
-        // PERBAIKAN: Gunakan WITA untuk tanggal hari ini, bukan UTC
         const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' })
-
         const { data: att } = await supabase
           .from('attendance')
           .select('*')
@@ -46,6 +45,9 @@ export default function Dashboard() {
           .eq('tanggal', today)
           .single()
         setAttendance(att || null)
+      } else {
+        // Admin default ke tab dashboard
+        setActiveTab('dashboard')
       }
 
       setLoading(false)
@@ -70,6 +72,7 @@ export default function Dashboard() {
   if (!user) return null
 
   const isAdmin = user.role === 'super_admin'
+
   const karyawanTabs = [
     { key: 'absensi', icon: '📍', label: 'Absensi' },
     { key: 'planning', icon: '📋', label: 'Planning' },
@@ -78,8 +81,14 @@ export default function Dashboard() {
     { key: 'profil', icon: '👤', label: 'Profil' },
   ]
 
+  const adminTabs = [
+    { key: 'dashboard', icon: '📊', label: 'Dashboard' },
+    { key: 'kelola', icon: '👥', label: 'Kelola' },
+  ]
+
   return (
     <div style={{ minHeight: '100vh', background: PC.surface, display: 'flex', flexDirection: 'column', maxWidth: 480, margin: '0 auto' }}>
+      {/* Header */}
       <div style={{ background: PC.white, borderBottom: `1px solid ${PC.border}`, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <img src="/logo.jpg" alt="logo" style={{ width: 32, height: 32, borderRadius: 8 }} />
@@ -95,8 +104,13 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* Content */}
       <div style={{ flex: 1, padding: 16, overflowY: 'auto' }}>
-        {isAdmin && <AdminDashboard user={user} />}
+        {/* Admin tabs content */}
+        {isAdmin && activeTab === 'dashboard' && <AdminDashboard user={user} />}
+        {isAdmin && activeTab === 'kelola' && <ManageUsers user={user} />}
+
+        {/* Karyawan tabs content */}
         {!isAdmin && activeTab === 'absensi' && <CheckIn user={user} attendance={attendance} onAttendanceUpdate={setAttendance} />}
         {!isAdmin && activeTab === 'planning' && <DailyPlanning user={user} attendance={attendance} />}
         {!isAdmin && activeTab === 'jobdesc' && <JobdeskScreen user={user} />}
@@ -104,6 +118,21 @@ export default function Dashboard() {
         {!isAdmin && activeTab === 'profil' && <ProfileScreen user={user} onUserUpdate={setUser} />}
       </div>
 
+      {/* Bottom Nav — Admin */}
+      {isAdmin && (
+        <div style={{ background: PC.white, borderTop: `1px solid ${PC.border}`, display: 'flex', padding: '8px 0 16px' }}>
+          {adminTabs.map(t => (
+            <button key={t.key} onClick={() => setActiveTab(t.key)}
+              style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0' }}>
+              <span style={{ fontSize: 20, filter: activeTab === t.key ? 'none' : 'grayscale(1) opacity(0.45)' }}>{t.icon}</span>
+              <span style={{ fontSize: 10, fontWeight: activeTab === t.key ? 700 : 500, color: activeTab === t.key ? PC.primary : PC.textMuted }}>{t.label}</span>
+              {activeTab === t.key && <div style={{ width: 4, height: 4, borderRadius: '50%', background: PC.primary }} />}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Bottom Nav — Karyawan */}
       {!isAdmin && (
         <div style={{ background: PC.white, borderTop: `1px solid ${PC.border}`, display: 'flex', padding: '8px 0 16px' }}>
           {karyawanTabs.map(t => (
