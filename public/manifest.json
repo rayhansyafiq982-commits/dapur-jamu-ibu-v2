@@ -1,0 +1,22 @@
+{
+  "name": "Dapur Jamu Ibu",
+  "short_name": "DJI Absensi",
+  "description": "Sistem Absensi Dapur Jamu Ibu",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1B5E3A",
+  "theme_color": "#1B5E3A",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
