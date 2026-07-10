@@ -15,6 +15,7 @@ export default function AdminDashboard({ user }: { user: any }) {
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [karyawan, setKaryawan] = useState<any[]>([])
   const [rekap, setRekap] = useState<any[]>([])
+  const [rekapBulanan, setRekapBulanan] = useState<any[]>([])
   const [aktivitas, setAktivitas] = useState<any[]>([])
   const [picaList, setPicaList] = useState<any[]>([])
   const [expandedTask, setExpandedTask] = useState<string | null>(null)
@@ -25,14 +26,25 @@ export default function AdminDashboard({ user }: { user: any }) {
       const { data: profiles } = await supabase.from('profiles').select('*').eq('role', 'karyawan').eq('is_active', true)
       setKaryawan(profiles || [])
 
+      // Rekap 7 hari terakhir
       const today = new Date()
       const dates = Array.from({ length: 7 }, (_, i) => {
         const d = new Date(today); d.setDate(today.getDate() - i)
         return d.toISOString().split('T')[0]
       })
-
       const { data: attData } = await supabase.from('attendance').select('*, profiles(full_name, divisi)').in('tanggal', dates).order('tanggal', { ascending: false })
       setRekap(attData || [])
+
+      // Rekap bulan ini untuk akumulasi poin
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]
+      const { data: bulananData } = await supabase
+        .from('attendance')
+        .select('user_id, poin, status, tanggal')
+        .gte('tanggal', firstDay)
+        .lte('tanggal', lastDay)
+        .eq('status', 'hadir')
+      setRekapBulanan(bulananData || [])
 
       const { data: picaData } = await supabase.from('pica').select('*, profiles(full_name), daily_planning(*, daily_tasks(nama_tugas, icon))').order('created_at', { ascending: false }).limit(20)
       setPicaList(picaData || [])
@@ -56,6 +68,20 @@ export default function AdminDashboard({ user }: { user: any }) {
   const selectedKaryawan = karyawan.find(k => k.id === selectedUser)
   const doneCount = aktivitas.filter(a => a.is_completed).length
 
+  // Hitung akumulasi poin bulanan per karyawan
+  const getPoinBulanan = (userId: string) => {
+    return rekapBulanan
+      .filter(r => r.user_id === userId)
+      .reduce((sum, r) => sum + (r.poin || 0), 0)
+  }
+
+  const getHadirBulanan = (userId: string) => {
+    return rekapBulanan.filter(r => r.user_id === userId).length
+  }
+
+  // Urutkan karyawan berdasarkan poin tertinggi
+  const karyawanRanked = [...karyawan].sort((a, b) => getPoinBulanan(b.id) - getPoinBulanan(a.id))
+
   const exportExcel = () => {
     const header = ['Karyawan', ...uniqueDates.map(d => new Date(d).toLocaleDateString('id-ID'))].join(',')
     const rows = karyawan.map(k => {
@@ -77,11 +103,11 @@ export default function AdminDashboard({ user }: { user: any }) {
     URL.revokeObjectURL(url)
   }
 
-  const exportPDF = () => {
-    window.print()
-  }
+  const exportPDF = () => { window.print() }
 
   const C = { card: { background: G.white, borderRadius: 16, padding: 20, boxShadow: '0 2px 12px rgba(27,94,58,0.08)', border: `1px solid ${G.border}` } }
+
+  const bulanIni = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
 
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: G.textMuted }}>⏳ Memuat data...</div>
 
@@ -111,7 +137,7 @@ export default function AdminDashboard({ user }: { user: any }) {
       {/* Karyawan Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${karyawan.length}, 1fr)`, gap: 10 }}>
         {karyawan.map(k => {
-          const todayAtt = rekap.find(r => r.user_id === k.id && r.tanggal === new Date().toISOString().split('T')[0])
+          const todayAtt = rekap.find(r => r.user_id === k.id && r.tanggal === new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' }))
           return (
             <div key={k.id} onClick={() => loadAktivitas(k.id)}
               style={{ background: G.white, borderRadius: 14, padding: '14px 10px', border: `2px solid ${selectedUser === k.id && tab === 'aktivitas' ? G.primary : G.border}`, textAlign: 'center', cursor: 'pointer' }}>
@@ -134,6 +160,44 @@ export default function AdminDashboard({ user }: { user: any }) {
         })}
       </div>
       <div style={{ textAlign: 'center', fontSize: 11, color: G.textMuted }}>Tap kartu untuk lihat detail aktivitas →</div>
+
+      {/* ✅ BARU: Akumulasi Poin Bulan Ini */}
+      <div style={C.card}>
+        <div style={{ color: G.textMuted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 }}>
+          🏆 Akumulasi Poin — {bulanIni}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {karyawanRanked.map((k, i) => {
+            const totalPoin = getPoinBulanan(k.id)
+            const hariHadir = getHadirBulanan(k.id)
+            const maxPoin = getPoinBulanan(karyawanRanked[0].id) || 1
+            const rankEmoji = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`
+            return (
+              <div key={k.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: i === 0 ? G.accentLight : G.surface, border: `1px solid ${i === 0 ? G.accent : G.border}` }}>
+                <div style={{ fontSize: 18, width: 28, textAlign: 'center', flexShrink: 0 }}>{rankEmoji}</div>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                  background: k.avatar_url ? `url(${k.avatar_url})` : G.surfaceAlt,
+                  backgroundSize: 'cover', backgroundPosition: 'center',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+                }}>{!k.avatar_url && '👤'}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: G.text }}>{k.full_name}</div>
+                  <div style={{ fontSize: 10, color: G.textMuted, marginTop: 2 }}>{hariHadir} hari hadir</div>
+                  {/* Progress bar */}
+                  <div style={{ marginTop: 6, height: 4, background: G.border, borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${(totalPoin / maxPoin) * 100}%`, background: i === 0 ? G.accent : G.primary, borderRadius: 2, transition: 'width 0.5s' }} />
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontWeight: 900, fontSize: 20, color: i === 0 ? G.primary : G.text }}>{totalPoin}</div>
+                  <div style={{ fontSize: 9, color: G.textMuted }}>poin</div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', background: G.surfaceAlt, borderRadius: 12, padding: 4, gap: 4 }}>
