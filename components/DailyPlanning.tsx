@@ -27,10 +27,12 @@ export default function DailyPlanning({ user, attendance: attendanceProp }: Prop
   const [picaDone, setPicaDone] = useState(false)
   const [attendance, setAttendance] = useState<any>(attendanceProp)
 
+  // ✅ WITA tanggal helper
+  const getTodayWITA = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' })
+
   useEffect(() => {
     const load = async () => {
-      // Selalu fetch attendance terbaru langsung — jangan andalkan props yang mungkin stale
-      const today = new Date().toISOString().split('T')[0]
+      const today = getTodayWITA()
       let currentAttendance = attendanceProp
       if (!currentAttendance) {
         const { data: att } = await supabase.from('attendance').select('*').eq('user_id', user.id).eq('tanggal', today).maybeSingle()
@@ -52,7 +54,6 @@ export default function DailyPlanning({ user, attendance: attendanceProp }: Prop
           setItems(tasks.map(t => ({ ...t, is_planned: true, is_completed: false, catatan_planning: '', catatan_aktual: '', showNoteP: false, showNoteA: false })))
         }
       } else {
-        // Belum check-in hari ini
         setItems(tasks.map(t => ({ ...t, is_planned: true, is_completed: false, catatan_planning: '', catatan_aktual: '', showNoteP: false, showNoteA: false })))
       }
       setLoading(false)
@@ -69,8 +70,7 @@ export default function DailyPlanning({ user, attendance: attendanceProp }: Prop
 
   const savePlanning = async () => {
     if (!attendance) {
-      // Coba fetch ulang attendance
-      const today = new Date().toISOString().split('T')[0]
+      const today = getTodayWITA()
       const { data: att } = await supabase.from('attendance').select('*').eq('user_id', user.id).eq('tanggal', today).maybeSingle()
       if (!att) {
         setSavedMsg('⚠️ Kamu belum check-in hari ini. Absen dulu ya!')
@@ -80,9 +80,10 @@ export default function DailyPlanning({ user, attendance: attendanceProp }: Prop
       setAttendance(att)
     }
     setSaving(true)
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayWITA()
     const currentAttendance = attendance || (await supabase.from('attendance').select('*').eq('user_id', user.id).eq('tanggal', today).maybeSingle()).data
     if (!currentAttendance) return
+
     const upserts = items.filter(i => i.is_planned).map(i => ({
       attendance_id: currentAttendance.id, user_id: user.id, tanggal: today,
       task_id: i.id, is_planned: true, is_completed: false,
@@ -90,6 +91,16 @@ export default function DailyPlanning({ user, attendance: attendanceProp }: Prop
     }))
     const { error } = await supabase.from('daily_planning').upsert(upserts, { onConflict: 'attendance_id,task_id' })
     if (error) console.error('Planning save error:', error)
+
+    // ✅ Sync planning ke Google Sheets
+    try {
+      await fetch('/api/sync-sheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tanggal: today, type: 'planning' })
+      })
+    } catch (e) { console.error('Sync planning error:', e) }
+
     setSaving(false)
     setSavedMsg('Planning tersimpan!')
     setTimeout(() => { setSavedMsg(''); setTab('aktual') }, 1200)
@@ -98,10 +109,25 @@ export default function DailyPlanning({ user, attendance: attendanceProp }: Prop
   const saveAktual = async () => {
     if (!attendance) return
     setSaving(true)
+    const today = getTodayWITA()
+
     for (const item of items.filter(i => i.is_planned)) {
-      await supabase.from('daily_planning').update({ is_completed: item.is_completed, catatan_aktual: item.catatan_aktual, waktu_completed: item.is_completed ? new Date().toISOString() : null })
-        .eq('attendance_id', attendance.id).eq('task_id', item.id)
+      await supabase.from('daily_planning').update({
+        is_completed: item.is_completed,
+        catatan_aktual: item.catatan_aktual,
+        waktu_completed: item.is_completed ? new Date().toISOString() : null
+      }).eq('attendance_id', attendance.id).eq('task_id', item.id)
     }
+
+    // ✅ Sync aktual ke Google Sheets
+    try {
+      await fetch('/api/sync-sheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tanggal: today, type: 'planning' })
+      })
+    } catch (e) { console.error('Sync aktual error:', e) }
+
     const unfinished = items.filter(i => i.is_planned && !i.is_completed)
     setSaving(false)
     if (unfinished.length > 0) { setShowPica(true) }
@@ -112,37 +138,31 @@ export default function DailyPlanning({ user, attendance: attendanceProp }: Prop
     const unfinished = items.filter(i => i.is_planned && !i.is_completed)
     const current = unfinished[picaIdx]
     const { data: planningRow } = await supabase.from('daily_planning').select('id').eq('attendance_id', attendance.id).eq('task_id', current.id).maybeSingle()
+
     if (planningRow) {
-      const today = new Date().toISOString().split('T')[0]
-      const tanggalWITA = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Makassar' })
+      // ✅ Tanggal WITA
+      const today = getTodayWITA()
 
       await supabase.from('pica').insert({
-        planning_id: planningRow.id, user_id: user.id, tanggal: today,
+        planning_id: planningRow.id,
+        user_id: user.id,
+        tanggal: today,
         identifikasi_masalah: picaData[`${current.id}_masalah`] || '',
         akar_penyebab: picaData[`${current.id}_akar`] || '',
         rencana_perbaikan: picaData[`${current.id}_perbaikan`] || '',
         target_selesai: picaData[`${current.id}_target`] || null,
       })
 
-      // Sync ke Google Sheets PICA via Make webhook
+      // ✅ Sync PICA ke Google Sheets (ganti Make.com)
       try {
-        await fetch('https://hook.eu1.make.com/qk59vpm9fzc57olrzb4j19kswkr8oo58', {
+        await fetch('/api/sync-sheets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tanggal: tanggalWITA,
-            karyawan: user.full_name,
-            tugas: current.nama_tugas,
-            identifikasi_masalah: picaData[`${current.id}_masalah`] || '',
-            akar_penyebab: picaData[`${current.id}_akar`] || '',
-            rencana_perbaikan: picaData[`${current.id}_perbaikan`] || '',
-            target_selesai: picaData[`${current.id}_target`] || '-',
-          }),
+          body: JSON.stringify({ tanggal: today, type: 'pica' })
         })
-      } catch (e) {
-        console.error('Make PICA webhook error:', e)
-      }
+      } catch (e) { console.error('Sync PICA error:', e) }
     }
+
     if (picaIdx < unfinished.length - 1) setPicaIdx(i => i + 1)
     else setPicaDone(true)
   }
