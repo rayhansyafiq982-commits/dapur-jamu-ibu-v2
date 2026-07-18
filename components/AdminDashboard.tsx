@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import JobdeskScreen from './JobdeskScreen'
+import OmzetScreen from './OmzetScreen'
 
 const G = {
   primary: '#1B5E3A', primaryDark: '#0D3322', accent: '#4CAF6D', accentLight: '#E5F5EA',
@@ -11,7 +12,7 @@ const G = {
 }
 
 export default function AdminDashboard({ user }: { user: any }) {
-  const [tab, setTab] = useState<'rekap' | 'aktivitas' | 'pica' | 'jobdesc'>('rekap')
+  const [tab, setTab] = useState<'rekap' | 'aktivitas' | 'pica' | 'jobdesc' | 'omzet'>('rekap')
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [karyawan, setKaryawan] = useState<any[]>([])
   const [rekap, setRekap] = useState<any[]>([])
@@ -201,7 +202,7 @@ export default function AdminDashboard({ user }: { user: any }) {
 
       {/* Tabs */}
       <div style={{ display: 'flex', background: G.surfaceAlt, borderRadius: 12, padding: 4, gap: 4 }}>
-        {([['rekap', '📊 Rekap'], ['aktivitas', '📋 Aktivitas'], ['pica', '⚠️ PICA'], ['jobdesc', '📖 Jobdesc']] as const).map(([k, label]) => (
+        {([['rekap', '📊 Rekap'], ['aktivitas', '📋 Aktivitas'], ['pica', '⚠️ PICA'], ['jobdesc', '📖 Jobdesc'], ['omzet', '💰 Omzet']] as const).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: '9px 4px', borderRadius: 8, border: 'none', fontWeight: 700, fontSize: 11, cursor: 'pointer', background: tab === k ? G.white : 'transparent', color: tab === k ? G.primary : G.textMuted, boxShadow: tab === k ? '0 2px 8px rgba(0,0,0,0.08)' : 'none' }}>
             {label}
           </button>
@@ -350,6 +351,9 @@ export default function AdminDashboard({ user }: { user: any }) {
 
       {/* JOBDESC */}
       {tab === 'jobdesc' && <JobdeskScreen user={user} />}
+
+      {/* OMZET */}
+      {tab === 'omzet' && <OmzetScreen />}
     </div>
   )
 }
