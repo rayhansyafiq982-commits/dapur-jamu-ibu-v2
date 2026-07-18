@@ -65,6 +65,14 @@ export default function OmzetScreen() {
 
   async function simpanOmzet() {
     if (!omzet) { setError('Isi omzet dulu ya.'); return }
+    const nilai = parseFloat(omzet)
+    if (nilai > 0 && nilai < 1000) {
+      const dugaan = (nilai * 1000000).toLocaleString('id-ID')
+      const lanjut = window.confirm(`Omzet ${omzet} kelihatan kecil sekali.
+
+Apakah maksudnya Rp${dugaan} (${omzet} juta)? Kalau ya, klik OK lalu ubah dulu jadi angka penuh. Kalau memang benar segitu, klik Cancel untuk tetap simpan.`)
+      if (lanjut) return
+    }
     setLoading(true)
     setError('')
     try {
